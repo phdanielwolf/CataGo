@@ -28,6 +28,36 @@
     <meta name="twitter:image" content="favicon.ico">
     
     <title>Juego de Memoria - Destinos Turísticos Catamarca</title>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Configuración de Firebase (necesitarás reemplazar con tu configuración)
+        const firebaseConfig = {
+        apiKey: "AIzaSyCVGfNeDeujm3ZCYCUdP9NEyCKN08H1ZKI",
+    authDomain: "catamarca-memory-game.firebaseapp.com",
+    projectId: "catamarca-memory-game",
+    storageBucket: "catamarca-memory-game.firebasestorage.app",
+    messagingSenderId: "713873453379",
+    appId: "1:713873453379:web:306f99c7068ddff349fff6"
+        };
+        
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Hacer disponibles las funciones globalmente
+        window.firebaseDB = db;
+        window.firebaseCollection = collection;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseQuery = query;
+        window.firebaseOrderBy = orderBy;
+        window.firebaseLimit = limit;
+    </script>
+    
     <style>
         * {
             margin: 0;
@@ -701,97 +731,145 @@
             return Math.max(100, baseScore + timeBonus - attemptPenalty);
         }
 
-        function saveScore() {
+        async function saveScore() {
             const playerName = document.getElementById('playerName').value.trim();
             if (!playerName) {
-                alert('Por favor ingresa tu nombre');
+                alert('Por favor, ingresa tu nombre para guardar tu puntuación.');
                 return;
             }
-
-            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
-            const score = calculateScore(elapsed, gameState.attempts);
+            
+            const finalTime = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const score = calculateScore(finalTime, gameState.attempts);
             
             const scoreData = {
                 name: playerName,
                 score: score,
-                time: elapsed,
+                time: finalTime,
                 attempts: gameState.attempts,
-                date: new Date().toLocaleDateString()
+                date: new Date().toLocaleDateString('es-ES'),
+                timestamp: Date.now()
             };
-
-            // Obtener puntuaciones existentes desde localStorage
-            let leaderboard = [];
+            
             try {
-                const stored = localStorage.getItem('catamarcarMemoryGameLeaderboard');
-                if (stored) {
-                    leaderboard = JSON.parse(stored);
+                // Intentar guardar en Firebase primero
+                if (window.firebaseDB) {
+                    await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDB, 'leaderboard'), scoreData);
+                    alert('¡Puntuación guardada en el leaderboard global!');
+                } else {
+                    // Fallback a localStorage si Firebase no está disponible
+                    let leaderboard = JSON.parse(localStorage.getItem('catamarcarMemoryGameLeaderboard') || '[]');
+                    leaderboard.push(scoreData);
+                    leaderboard.sort((a, b) => b.score - a.score);
+                    leaderboard = leaderboard.slice(0, 10);
+                    localStorage.setItem('catamarcarMemoryGameLeaderboard', JSON.stringify(leaderboard));
+                    alert('¡Puntuación guardada localmente!');
                 }
-            } catch (e) {
-                console.log('Error al cargar puntuaciones:', e);
-                leaderboard = [];
+                
+                document.getElementById('scoreForm').style.display = 'none';
+                showLeaderboard();
+            } catch (error) {
+                console.error('Error al guardar la puntuación:', error);
+                // Fallback a localStorage en caso de error
+                try {
+                    let leaderboard = JSON.parse(localStorage.getItem('catamarcarMemoryGameLeaderboard') || '[]');
+                    leaderboard.push(scoreData);
+                    leaderboard.sort((a, b) => b.score - a.score);
+                    leaderboard = leaderboard.slice(0, 10);
+                    localStorage.setItem('catamarcarMemoryGameLeaderboard', JSON.stringify(leaderboard));
+                    alert('Puntuación guardada localmente (sin conexión global).');
+                    document.getElementById('scoreForm').style.display = 'none';
+                    showLeaderboard();
+                } catch (localError) {
+                    alert('Error al guardar la puntuación. Por favor, intenta de nuevo.');
+                }
             }
-            
-            leaderboard.push(scoreData);
-            
-            // Ordenar por puntuación (mayor a menor)
-            leaderboard.sort((a, b) => b.score - a.score);
-            
-            // Mantener solo top 10
-            leaderboard = leaderboard.slice(0, 10);
-            
-            // Guardar en localStorage
-            try {
-                localStorage.setItem('catamarcarMemoryGameLeaderboard', JSON.stringify(leaderboard));
-            } catch (e) {
-                console.log('Error al guardar puntuaciones:', e);
-                alert('No se pudo guardar la puntuación. Verifica que el almacenamiento local esté habilitado.');
-                return;
-            }
-
-            // Ocultar formulario y mostrar mensaje de éxito
-            document.getElementById('scoreForm').innerHTML = 
-                '<div style="color: #90EE90; font-size: 1.1rem; margin: 15px 0;">✅ ¡Puntuación guardada exitosamente!</div>';
         }
 
-        function showLeaderboard() {
-            let leaderboard = [];
-            try {
-                const stored = localStorage.getItem('catamarcarMemoryGameLeaderboard');
-                if (stored) {
-                    leaderboard = JSON.parse(stored);
-                }
-            } catch (e) {
-                console.log('Error al cargar puntuaciones:', e);
-                leaderboard = [];
-            }
-            
+        async function showLeaderboard() {
+            const modal = document.getElementById('leaderboardModal');
             const content = document.getElementById('leaderboardContent');
             
-            if (leaderboard.length === 0) {
-                content.innerHTML = '<div style="padding: 20px; opacity: 0.7;">No hay puntuaciones guardadas aún.<br>¡Sé el primero en completar el juego!</div>';
-            } else {
-                content.innerHTML = leaderboard.map((entry, index) => {
-                    const minutes = Math.floor(entry.time / 60).toString().padStart(2, '0');
-                    const seconds = (entry.time % 60).toString().padStart(2, '0');
-                    const timeStr = `${minutes}:${seconds}`;
-                    
-                    const isTopThree = index < 3;
-                    const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                    
-                    return `
-                        <div class="leaderboard-entry ${isTopThree ? 'top-3' : ''}">
-                            <div class="leaderboard-rank">${rankEmoji}</div>
-                            <div class="leaderboard-info">
-                                <div class="leaderboard-name">${entry.name}</div>
-                                <div class="leaderboard-stats">⏰ ${timeStr} | 🎯 ${entry.attempts} intentos | 📅 ${entry.date}</div>
-                            </div>
-                            <div class="leaderboard-score">${entry.score}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
+            // Mostrar loading
+            content.innerHTML = '<p style="text-align: center; margin: 20px 0;">🔄 Cargando leaderboard global...</p>';
+            modal.style.display = 'block';
             
-            document.getElementById('leaderboardModal').style.display = 'block';
+            try {
+                let leaderboard = [];
+                
+                // Intentar cargar desde Firebase primero
+                if (window.firebaseDB) {
+                    const q = window.firebaseQuery(
+                        window.firebaseCollection(window.firebaseDB, 'leaderboard'),
+                        window.firebaseOrderBy('score', 'desc'),
+                        window.firebaseLimit(10)
+                    );
+                    const querySnapshot = await window.firebaseGetDocs(q);
+                    leaderboard = querySnapshot.docs.map(doc => doc.data());
+                }
+                
+                // Si Firebase no tiene datos o no está disponible, usar localStorage
+                if (leaderboard.length === 0) {
+                    leaderboard = JSON.parse(localStorage.getItem('catamarcarMemoryGameLeaderboard') || '[]');
+                }
+                
+                if (leaderboard.length === 0) {
+                    content.innerHTML = '<p style="text-align: center; opacity: 0.7; margin: 20px 0;">No hay puntuaciones guardadas aún.<br>¡Sé el primero en completar el juego!</p>';
+                } else {
+                    let html = '';
+                    leaderboard.forEach((entry, index) => {
+                        const isTop3 = index < 3;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                        const minutes = Math.floor(entry.time / 60).toString().padStart(2, '0');
+                        const seconds = (entry.time % 60).toString().padStart(2, '0');
+                        const timeStr = `${minutes}:${seconds}`;
+                        
+                        html += `
+                            <div class="leaderboard-entry ${isTop3 ? 'top-3' : ''}">
+                                <div class="leaderboard-rank">${medal}</div>
+                                <div class="leaderboard-info">
+                                    <div class="leaderboard-name">${entry.name}</div>
+                                    <div class="leaderboard-stats">⏰ ${timeStr} | 🎯 ${entry.attempts} intentos | 📅 ${entry.date}</div>
+                                </div>
+                                <div class="leaderboard-score">${entry.score}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    const dataSource = window.firebaseDB && leaderboard.length > 0 ? '🌍 Leaderboard Global' : '📱 Leaderboard Local';
+                    content.innerHTML = `<div style="text-align: center; margin-bottom: 15px; opacity: 0.8; font-size: 0.9rem;">${dataSource}</div>` + html;
+                }
+            } catch (error) {
+                console.error('Error al cargar el leaderboard:', error);
+                // Fallback a localStorage
+                try {
+                    const localLeaderboard = JSON.parse(localStorage.getItem('catamarcarMemoryGameLeaderboard') || '[]');
+                    if (localLeaderboard.length > 0) {
+                        let html = '<div style="text-align: center; margin-bottom: 15px; opacity: 0.8; font-size: 0.9rem;">📱 Leaderboard Local (sin conexión)</div>';
+                        localLeaderboard.forEach((entry, index) => {
+                            const isTop3 = index < 3;
+                            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                            const minutes = Math.floor(entry.time / 60).toString().padStart(2, '0');
+                            const seconds = (entry.time % 60).toString().padStart(2, '0');
+                            const timeStr = `${minutes}:${seconds}`;
+                            html += `
+                                <div class="leaderboard-entry ${isTop3 ? 'top-3' : ''}">
+                                    <div class="leaderboard-rank">${medal}</div>
+                                    <div class="leaderboard-info">
+                                        <div class="leaderboard-name">${entry.name}</div>
+                                        <div class="leaderboard-stats">⏰ ${timeStr} | 🎯 ${entry.attempts} intentos | 📅 ${entry.date}</div>
+                                    </div>
+                                    <div class="leaderboard-score">${entry.score}</div>
+                                </div>
+                            `;
+                        });
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = '<p style="text-align: center; opacity: 0.7; margin: 20px 0;">No hay puntuaciones guardadas aún.<br>¡Sé el primero en completar el juego!</p>';
+                    }
+                } catch (localError) {
+                    content.innerHTML = '<p style="text-align: center; color: #ff6b6b; margin: 20px 0;">Error al cargar las puntuaciones.</p>';
+                }
+            }
         }
 
         function closeLeaderboard() {
