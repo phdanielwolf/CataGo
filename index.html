@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Juego realizado para las jornadas de Turismo 2025. Juego de memoria para descubrir destinos turísticos de Catamarca. Encuentra todos los pares antes de que se agote el tiempo.">
+    <meta name="description" content="Juego realizado para las Jornadas de Turismo 2025. Juego de memoria para descubrir destinos turísticos de Catamarca. Encuentra todos los pares antes de que se agote el tiempo.">
     <meta name="author" content="Luz Andrea Arce">
     
     <meta name="keywords" content="juego, memoria, destinos turísticos, Catamarca">
@@ -14,7 +14,7 @@
     
     <!-- Open Graph Meta Tags para compartir en redes sociales -->
     <meta property="og:title" content="Juego de Memoria - Destinos Turísticos Catamarca">
-    <meta property="og:description" content="Juego realizado para las jornadas de Turismo 2025. Juego de memoria para descubrir destinos turísticos de Catamarca. ¡Encuentra todos los pares antes de que se agote el tiempo!">
+    <meta property="og:description" content="Juego realizado para las Jornadas de Turismo 2025. Juego de memoria para descubrir destinos turísticos de Catamarca. ¡Encuentra todos los pares antes de que se agote el tiempo!">
     <meta property="og:image" content="favicon.ico">
     <meta property="og:url" content="https://cata-go.vercel.app/">
     <meta property="og:type" content="website">
@@ -24,7 +24,7 @@
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Juego de Memoria - Destinos Turísticos Catamarca">
-    <meta name="twitter:description" content="Juego realizado para las jornadas de Turismo 2025. Juego de memoria para descubrir destinos turísticos de Catamarca. ¡Encuentra todos los pares antes de que se agote el tiempo!">
+    <meta name="twitter:description" content="Juego realizado para las Jornadas de Turismo 2025. Juego de memoria para descubrir destinos turísticos de Catamarca. ¡Encuentra todos los pares antes de que se agote el tiempo!">
     <meta name="twitter:image" content="favicon.ico">
     
     <title>Juego de Memoria - Destinos Turísticos Catamarca</title>
@@ -482,13 +482,13 @@
             </div>
             <div style="margin-top: 20px;">
                 <button class="btn btn-primary" onclick="closeLeaderboard()">🔙 Cerrar</button>
-                <!-- <button class="btn btn-secondary" onclick="clearLeaderboard()">🗑️ Limpiar Datos</button> -->
+                <button class="btn btn-secondary" onclick="clearLeaderboard()">🗑️ Limpiar Datos</button>
             </div>
         </div>
     </div>
 
     <div class="credits" style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px; backdrop-filter: blur(10px); max-width: 600px; margin-left: auto; margin-right: auto;">
-        <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; line-height: 1.4;">Juego realizado para las jornadas de Turismo 2025<br>por <strong>Luz Andrea Arce</strong></p>
+        <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; line-height: 1.4;">Juego realizado para las Jornadas de Turismo 2025<br>por <strong>Luz Andrea Arce</strong></p>
     </div>
 
     <div class="particles" id="particles"></div>
@@ -718,8 +718,18 @@
                 date: new Date().toLocaleDateString()
             };
 
-            // Obtener puntuaciones existentes desde memoria (simulando almacenamiento)
-            let leaderboard = window.gameLeaderboard || [];
+            // Obtener puntuaciones existentes desde localStorage
+            let leaderboard = [];
+            try {
+                const stored = localStorage.getItem('catamarcarMemoryGameLeaderboard');
+                if (stored) {
+                    leaderboard = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.log('Error al cargar puntuaciones:', e);
+                leaderboard = [];
+            }
+            
             leaderboard.push(scoreData);
             
             // Ordenar por puntuación (mayor a menor)
@@ -728,8 +738,14 @@
             // Mantener solo top 10
             leaderboard = leaderboard.slice(0, 10);
             
-            // Guardar en memoria (simulando almacenamiento)
-            window.gameLeaderboard = leaderboard;
+            // Guardar en localStorage
+            try {
+                localStorage.setItem('catamarcarMemoryGameLeaderboard', JSON.stringify(leaderboard));
+            } catch (e) {
+                console.log('Error al guardar puntuaciones:', e);
+                alert('No se pudo guardar la puntuación. Verifica que el almacenamiento local esté habilitado.');
+                return;
+            }
 
             // Ocultar formulario y mostrar mensaje de éxito
             document.getElementById('scoreForm').innerHTML = 
@@ -737,7 +753,17 @@
         }
 
         function showLeaderboard() {
-            const leaderboard = window.gameLeaderboard || [];
+            let leaderboard = [];
+            try {
+                const stored = localStorage.getItem('catamarcarMemoryGameLeaderboard');
+                if (stored) {
+                    leaderboard = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.log('Error al cargar puntuaciones:', e);
+                leaderboard = [];
+            }
+            
             const content = document.getElementById('leaderboardContent');
             
             if (leaderboard.length === 0) {
@@ -772,8 +798,20 @@
         }
 
         function clearLeaderboard() {
+            const password = prompt('Ingresa la contraseña para limpiar los datos:');
+            if (password !== 'jotur2025') {
+                alert('❌ Contraseña incorrecta');
+                return;
+            }
+            
             if (confirm('¿Estás seguro de que quieres borrar todas las puntuaciones?')) {
-                window.gameLeaderboard = [];
+                try {
+                    localStorage.removeItem('catamarcarMemoryGameLeaderboard');
+                    alert('✅ Datos limpiados exitosamente');
+                } catch (e) {
+                    console.log('Error al limpiar puntuaciones:', e);
+                    alert('❌ Error al limpiar los datos');
+                }
                 showLeaderboard(); // Refresh the view
             }
         }
