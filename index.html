@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Juego de memoria para descubrir destinos turísticos de Catamarca. Encuentra todos los pares antes de que se agote el tiempo.">
-    <meta name="author" content="Arce Luz Andrea">
+    <meta name="author" content="Luz Andrea Arce">
     <meta name="keywords" content="juego, memoria, destinos turísticos, Catamarca">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>Juego de Memoria - Destinos Turísticos Catamarca</title>
@@ -382,8 +382,9 @@
 
     <div class="controls">
         <button class="btn btn-primary" onclick="showStartModal()">🎮 Nuevo Juego</button>
-        <button class="btn btn-secondary" onclick="resetGame()">🔄 Reiniciar</button>
+        <!-- <button class="btn btn-secondary" onclick="resetGame()">🔄 Reiniciar</button> -->
         <button class="btn btn-secondary" onclick="showLeaderboard()">🏆 Clasificación</button>
+        <button class="btn btn-secondary" onclick="toggleFullscreen()">🖥️ Pantalla Completa</button>
     </div>
 
     <!-- Modal de inicio -->
@@ -432,7 +433,7 @@
     </div>
 
     <div class="credits" style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px; backdrop-filter: blur(10px); max-width: 600px; margin-left: auto; margin-right: auto;">
-        <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; line-height: 1.4;">Juego realizado para la carrera de Tecnicatura en Turismo<br>por <strong>Arce Luz Andrea</strong></p>
+        <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; line-height: 1.4;">Juego realizado para la carrera de Tecnicatura en Turismo<br>por <strong>Luz Andrea Arce</strong></p>
     </div>
 
     <div class="particles" id="particles"></div>
@@ -818,6 +819,18 @@
                 e.target.style.display = 'none';
             }
         });
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Error al entrar en pantalla completa:', err);
+                });
+            } else {
+                document.exitFullscreen().catch(err => {
+                    console.log('Error al salir de pantalla completa:', err);
+                });
+            }
+        }
 
         // Inicializar el juego al cargar la página
         window.addEventListener('load', () => {
