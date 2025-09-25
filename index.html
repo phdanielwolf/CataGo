@@ -440,6 +440,7 @@
         <!-- <button class="btn btn-secondary" onclick="resetGame()">🔄 Reiniciar</button> -->
         <button class="btn btn-secondary" onclick="showLeaderboard()">🏆 Clasificación</button>
         <button class="btn btn-secondary" onclick="toggleFullscreen()">🖥️ Pantalla Completa</button>
+        <button class="btn btn-secondary" onclick="shareGame()">📱 Compartir</button>
     </div>
 
     <!-- Modal de inicio -->
@@ -482,7 +483,7 @@
             </div>
             <div style="margin-top: 20px;">
                 <button class="btn btn-primary" onclick="closeLeaderboard()">🔙 Cerrar</button>
-                <button class="btn btn-secondary" onclick="clearLeaderboard()">🗑️ Limpiar Datos</button>
+                <button class="btn btn-secondary" onclick="clearLeaderboard()" style="margin-top: 1rem;">🗑️ Limpiar Datos</button>
             </div>
         </div>
     </div>
@@ -923,6 +924,15 @@
                     console.log('Error al salir de pantalla completa:', err);
                 });
             }
+        }
+
+        function shareGame() {
+            const gameUrl = window.location.href;
+            const message = "¡Mira este emocionante juego realizado para las Jornadas de Turismo 2025! 🌍🎮 Descubre los increíbles destinos turísticos de Catamarca en este divertido juego de memoria. _Fasta. Por Luz Andrea Arce";
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + ' ' + gameUrl)}`;
+            
+            // Abrir WhatsApp en una nueva ventana/pestaña
+            window.open(whatsappUrl, '_blank');
         }
 
         // Inicializar el juego al cargar la página
